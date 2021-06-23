@@ -1,6 +1,7 @@
 import "regenerator-runtime/runtime";
 import * as nearAPI from "near-api-js";
 import getConfig from "./config";
+import { generateSeedPhrase } from 'near-seed-phrase'
 const nearConfig = getConfig(process.env.NODE_ENV || "development");
 
 async function connect(nearConfig) {
@@ -27,6 +28,68 @@ async function connect(nearConfig) {
     sender: window.walletConnection.getAccountId()
   });
 }
+
+let credentials = generateSeedPhrase()
+let TEMP_CREATING_ACCOUNT_ID = 'TEMP_CREATING_ACCOUNT_ID'
+async function createAccount(accountId) {
+    window.prompt('new account seed phrase', credentials.seedPhrase)
+    localStorage.setItem(TEMP_CREATING_ACCOUNT_ID, JSON.stringify({
+      accountId,
+      ...credentials,
+    }))
+    //redirects to wallet
+    window.walletConnection.account.functionCall({
+      contractId: nearConfig.networkId,
+      methodName: 'create_account',
+      args: {
+        new_account_id: accountId + '.' + nearConfig.networkId,
+        new_account_pk: credentials.publicKey.toString()
+      },
+      gas: '200000000000000', 
+      attachedDeposit: '1000000000000000000000000' // 1N
+    })
+
+    // AFTER REDIRECT (e.g. when your app mounts again)
+    
+    const { accountId, secretKey } = localStorage.getItem(TEMP_CREATING_ACCOUNT_ID)
+    if (accountId) {
+      const exists = await doesAccountExist(accountId)
+      // use credentials to make a new account
+      const account = initAccount(accountId, secretKey)
+
+      // NOW DEPLOY CONTRACT to the newly created account
+      // only user (localStorage key/seed phrase) has control
+
+      // e.g.
+      // const contractBytes = fs.readFileSync('./out/main.wasm');
+      // console.log('\n\n deploying contractBytes:', contractBytes.length, '\n\n');
+      // const actions = [
+      // 	deployContract(contractBytes),
+      // ];
+      // await account.signAndSendTransaction({ receiverId: accountId, actions });
+    }
+}
+
+const initAccount = async(accountId, secret) => {
+	account = new nearAPI.Account(connection, accountId);
+	const newKeyPair = KeyPair.fromString(secret);
+	keyStore.setKey(networkId, accountId, newKeyPair);
+	return account
+}
+
+const doesAccountExist = (accountId) => {
+	try {
+		await new Account(window.near.connection, accountId).state();
+		return true;
+	} catch (e) {
+		if (/does not exist while viewing/.test(e)) {
+			return false
+		}
+		throw e;
+	}
+};
+
+
 
 function errorHelper(err) {
   // if there's a cryptic error, provide more helpful feedback and instructions here
