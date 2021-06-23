@@ -5,6 +5,21 @@ Counter example in Rust
 
 <!-- MAGIC COMMENT: DO NOT DELETE! Everything above this line is hidden on NEAR Examples page -->
 
+# For Create Account Example Flow
+
+Steps:
+1. generate seed phrase
+2. create account with new accountId and new publicKey
+3. redirects to wallet
+4. on return check the account was created
+5. use the secretKey from the credentials var created in step 1 to create a new account instance
+6. deploy contract to the new account
+7. user is in complete control and has a seed phrase as a recovery method
+8. (optional) keep the new secretKey in localStorage so you can recreate the account instance, or prompt user for seed phrase when they want to access their contract
+
+
+
+
 ## Description
 
 This contract implements simple counter backed by storage on blockchain.
